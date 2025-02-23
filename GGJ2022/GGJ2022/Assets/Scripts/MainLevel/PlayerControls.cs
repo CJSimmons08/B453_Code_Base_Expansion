@@ -27,11 +27,15 @@ namespace MainLevel
         private bool onMovingPlat, onHotPlat;
         public bool onIcePlat;
         public bool grounded;
+        public bool poweredUp;
 
         [Header("Circle Behaviour")]
         [SerializeField] private CircleCollider2D circleCol;
         [SerializeField] private float speed = 1;
+        [SerializeField] private float poweredSpeed;
         [SerializeField] private Sprite coldCircle;
+        [SerializeField] private float platformMeltSpeed;
+        [SerializeField] private float poweredPlatformMeltSpeed;
         private Vector2 rollDir = Vector2.right;
     
         [Header("Square Behaviour")]
@@ -39,7 +43,9 @@ namespace MainLevel
         [SerializeField] private Sprite hotSquare;
         [SerializeField] private bool slide;
         [SerializeField] private float iceSlideSpeed;
+        [SerializeField] private float poweredUpSpeed;
         [SerializeField] private float meltSpeed;
+        [SerializeField] private float poweredUpMeltSpeed;
     
 
         private void Start()
@@ -81,7 +87,7 @@ namespace MainLevel
             if (!state)
             {
                 rb.constraints = RigidbodyConstraints2D.None;
-                rb.AddForce(rollDir * speed);
+                if (poweredUp) rb.AddForce(rollDir * poweredSpeed); else rb.AddForce(rollDir * speed);
                 circleCol.enabled = true;
                 squareCol.enabled = false;
                 rb.velocity = rollDir;
@@ -118,6 +124,7 @@ namespace MainLevel
 
         private void Die()
         {
+            poweredUp = false;
             Time.timeScale = 0;
             losePanel.SetActive(true);
         }
@@ -147,15 +154,19 @@ namespace MainLevel
 
         private void SquareBehaviour()
         {
+            var slideSpeed = poweredUp ? poweredUpSpeed : meltSpeed;
+            var currentMeltSpeed = poweredUp ? poweredUpMeltSpeed : meltSpeed;
+            
             if (onMovingPlat) return;
 
-            if (onIcePlat) rb.velocity = rollDir * iceSlideSpeed;
+            if (onIcePlat) rb.velocity = rollDir * slideSpeed;
+
 
             if (onHotPlat)
             {
                 var material = sr.material;
                 Color colour = material.color;
-                float fade = colour.a - (meltSpeed * Time.deltaTime);
+                float fade = colour.a - (currentMeltSpeed * Time.deltaTime);
             
                 colour = new Color(colour.r, colour.g, colour.b, fade);
                 material.color = colour;
@@ -177,7 +188,7 @@ namespace MainLevel
         {
             if (other.transform.rotation.z < 0) rollDir = Vector2.right;
             else if (other.transform.rotation.z > 0) rollDir = Vector2.left;
-            
+
             var platform = other.gameObject.GetComponent<Platform>();
             if (!platform) return;
 
@@ -227,7 +238,11 @@ namespace MainLevel
             {
                 case Platform.Type.Ice:
                     IcePlatform icePlatform = other.gameObject.GetComponent<IcePlatform>();
-                    if (!state) icePlatform.Melt();
+                    if (!state)
+                    {
+                        icePlatform.Melt(meltSpeed = poweredUp ? poweredUpMeltSpeed : meltSpeed);
+                    }
+
                     break;
                 
                 case Platform.Type.Moving:
@@ -259,6 +274,19 @@ namespace MainLevel
                 
                 default:
                     break;
+            }
+        }
+
+        private void OnTriggerEnter2D(Collider2D other)
+        {
+            if (!other.gameObject.CompareTag("PowerUp"))
+            {
+                //do nothing if not power up
+            }
+            else
+            {
+                poweredUp = true;
+                other.gameObject.SetActive(false);
             }
         }
     }

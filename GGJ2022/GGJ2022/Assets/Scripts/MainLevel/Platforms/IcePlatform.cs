@@ -6,7 +6,7 @@ namespace MainLevel.Platforms
     public class IcePlatform : Platform
     {
         [SerializeField] private SpriteRenderer sr;
-        [SerializeField] private float meltSpeed;
+        //[SerializeField] private float meltSpeed;
 
         private void Start()
         {
@@ -14,7 +14,7 @@ namespace MainLevel.Platforms
             if (!sr) sr = GetComponent<SpriteRenderer>();
         }
 
-        public void Melt()
+        public void Melt(float meltSpeed)
         {
             Color colour = sr.material.color;
             float fade = colour.a - (meltSpeed * Time.deltaTime);
